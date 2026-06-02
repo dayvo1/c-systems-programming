@@ -265,3 +265,20 @@
 - Use `write(1, buf, bytes)` for raw pipe output — not `printf` (not null-terminated)
 - Pipes aren't seekable — can't use `lseek` to get size upfront, use a large buffer
 - This is how `ls | grep` works — `ls` stdout → pipe → `grep` stdin
+
+---
+
+## Exercise 22 — Mini Shell
+**Concepts:** shell loop, `fgets`, `strtok`, `execvp`, `strcspn`, fork+exec in a loop
+**Notes:**
+- A shell is just `while(1) { prompt → read → parse → fork → exec → wait }`
+- `fgets(buf, size, stdin)` reads a line including the `\n` — strip it with `buf[strcspn(buf, "\n")] = '\0'`
+- `strtok` is destructive — replaces delimiters with `'\0'` one at a time, one per call
+- First call: `strtok(str, " ")`, subsequent calls: `strtok(NULL, " ")` — it remembers position internally
+- Build a fixed `char* argv[64]` — no need to count tokens first
+- `argv` must be NULL-terminated — strtok returns NULL at end, store it as the last element
+- `execvp(argv[0], argv)` — searches PATH, takes the full argv array
+- Always `exit(1)` after `execvp` in the child — execvp only returns on failure
+- Fork so the child gets replaced by the command, parent survives and loops back to prompt
+- Child inherits parent's stdout (the PTY) — command output goes to your terminal automatically
+- `strcmp(argv[0], "exit") == 0` to detect the exit command and break the loop

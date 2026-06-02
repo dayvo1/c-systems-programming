@@ -53,3 +53,36 @@
 //
 // Goal: understand that a shell is just fork+exec in a loop,
 // and that you've now built one from scratch.
+
+int main() {
+        
+    while(1) {
+        printf("mysh> ");
+        char usr_input[1024];
+        fgets(usr_input, sizeof(usr_input), stdin);
+    
+        usr_input[strcspn(usr_input, "\n")] = '\0'; 
+        char* command = strtok(usr_input, " ");
+        char* argv[64];
+        int i = 0;
+        argv[i++] = command;
+        while(command != NULL) {
+            command = strtok(NULL, " ");
+            argv[i++] = command;
+        }
+
+        if(strcmp(argv[0], "exit") == 0) { break; }
+        pid_t pid = fork();
+
+        if(pid == -1) {
+            return -1;
+        } else if(pid == 0) {
+            execvp(argv[0], argv);
+            exit(1);
+        } else {
+            waitpid(pid, NULL, 0);
+        }
+        
+    }
+    return 0;
+}
