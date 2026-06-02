@@ -1,0 +1,3 @@
+Hello
+I am writing to data.txt
+from ex9.c
