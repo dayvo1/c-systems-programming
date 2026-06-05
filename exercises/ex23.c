@@ -61,5 +61,76 @@
 
 int main() {
 
+    while(1) {
+        printf("mysh> ");
+        char usr_input[1024];
+        fgets(usr_input, sizeof(usr_input), stdin);
+        char* argv[64];
+        usr_input[strcspn(usr_input, "\n")] = '\0';
+        char* command = strtok(usr_input, " ");
+        int i = 0;
+        argv[i++] = command;
+        while(command != NULL) {
+            command = strtok(NULL, " ");
+            argv[i++] = command;
+        }
+        if(argv[0] == NULL) { continue; }
+        int fds[2];
+        int pipe_idx = -1;
+        char* left[64];
+        char* right[64];
+        for(int j = 0; j < i; j++) {
+            if(argv[j] != NULL && strcmp(argv[j], "|") == 0) {
+                if(pipe(fds) == -1) { return -1; }
+                pipe_idx = j;
+            }
+        }
+
+        if(pipe_idx != -1) {
+            for(int k = 0; k < pipe_idx; k++) {
+                left[k] = argv[k];
+            }
+            left[pipe_idx] = NULL;
+
+            for(int l = pipe_idx + 1; l < i; l++) {
+                right[l - (pipe_idx +1)] = argv[l];
+            }
+
+            pid_t child_1 = fork();
+            if(child_1 == -1) {
+                return -1;
+            } else if(child_1 == 0) {
+                dup2(fds[1], STDOUT_FILENO);
+                close(fds[0]);
+                close(fds[1]);
+                execvp(left[0], left);
+                exit(1);
+            }
+
+            pid_t child_2 = fork();
+            if(child_2 == -1) {
+                return -1;
+            } else if(child_2 == 0) {
+                dup2(fds[0], STDIN_FILENO);
+                close(fds[0]);
+                close(fds[1]);
+                execvp(right[0], right);
+                exit(1);
+            }
+
+            close(fds[0]);
+            close(fds[1]);
+            waitpid(child_1, NULL, 0);
+            waitpid(child_2, NULL, 0);
+            
+        } else {
+            if(strcmp(argv[0], "exit") == 0) { break; }
+            pid_t pid = fork();
+            if(pid == -1) { return -1; }
+            else if(pid == 0) { execvp(argv[0], argv); exit(1); }
+            else { waitpid(pid, NULL, 0); }
+        }
+        
+    }   
     return 0;
 }

@@ -282,3 +282,19 @@
 - Fork so the child gets replaced by the command, parent survives and loops back to prompt
 - Child inherits parent's stdout (the PTY) — command output goes to your terminal automatically
 - `strcmp(argv[0], "exit") == 0` to detect the exit command and break the loop
+
+---
+
+## Exercise 23 — Shell with Pipes
+**Concepts:** pipe in a shell, splitting argv, two children, dup2 on both ends
+**Notes:**
+- Scan argv for `"|"` using `strcmp(argv[j], "|") == 0` — save the index as `pipe_idx`
+- Null-check before strcmp — `argv[j] != NULL && strcmp(...)` — scan loop must be `j < i` not `j < i+1`
+- Split argv into `left[]` (0 to pipe_idx-1, then NULL) and `right[]` (pipe_idx+1 onward)
+- Right array index: `right[l - (pipe_idx + 1)] = argv[l]` — right starts at 0, not pipe_idx+1
+- Fork child_1 first: `dup2(fds[1], STDOUT_FILENO)` → close both fds → execvp left command
+- Fork child_2 second: `dup2(fds[0], STDIN_FILENO)` → close both fds → execvp right command
+- Parent closes both fds, then waitpid for both children
+- Parent must close fds or right child blocks forever waiting for EOF on the pipe
+- `cd` can't be forked — it only works as a built-in calling `chdir()` directly in the shell process
+- If no pipe found, run command normally (same as ex22)
